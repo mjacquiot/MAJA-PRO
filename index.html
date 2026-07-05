@@ -15,5 +15,47 @@
   </head>
   <body class="bg-slate-900 text-slate-100 antialiased selection:bg-indigo-500 selection:text-white">
     <div id="root"></div>
+
+    <!-- Debug footer visible even on White Screen -->
+    <div id="debug-footer" style="position: fixed; bottom: 0; left: 0; right: 0; background: rgba(15, 23, 42, 0.95); border-top: 1px solid rgba(99, 102, 241, 0.3); color: #94a3b8; font-family: monospace; font-size: 10px; text-align: center; padding: 6px 12px; z-index: 99999; display: flex; justify-content: space-between; align-items: center; box-sizing: border-box;">
+      <span>🛡️ MAJA Pro Debug Layer</span>
+      <span id="debug-git-info">Chargement des infos...</span>
+    </div>
+
+    <script>
+      (function() {
+        const gitInfo = document.getElementById('debug-git-info');
+        const host = window.location.hostname;
+        const path = window.location.pathname;
+        
+        // Build Date
+        const buildDate = new Date().toLocaleString('fr-FR', { timeZone: 'Europe/Paris' });
+        gitInfo.textContent = "Build Local : " + buildDate;
+
+        if (host.includes('.github.io')) {
+          const owner = host.split('.')[0];
+          const repo = path.split('/').filter(Boolean)[0];
+          if (owner && repo) {
+            gitInfo.textContent = "Recherche commit GitHub...";
+            fetch(`https://api.github.com/repos/${owner}/${repo}/commits?per_page=1`)
+              .then(res => {
+                if (!res.ok) throw new Error("Status " + res.status);
+                return res.json();
+              })
+              .then(data => {
+                if (data && data[0]) {
+                  const commitDate = new Date(data[0].commit.committer.date);
+                  const formattedDate = commitDate.toLocaleString('fr-FR', { timeZone: 'Europe/Paris' });
+                  const message = data[0].commit.message.substring(0, 30);
+                  gitInfo.textContent = `Dernier commit : ${formattedDate} (${message}...)`;
+                }
+              })
+              .catch(err => {
+                gitInfo.textContent = `Erreur GitHub Pages : ${err.message} (Build Local : ${buildDate})`;
+              });
+          }
+        }
+      })();
+    </script>
   </body>
 </html>
