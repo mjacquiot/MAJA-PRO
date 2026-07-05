@@ -32,7 +32,7 @@
         const path = window.location.pathname;
         
         // Build Date
-        const buildDateIso = "2026-07-05T22:20:22.701Z";
+        const buildDateIso = "2026-07-05T22:33:28.585Z";
         const buildDate = new Date(buildDateIso.includes("__BUILD_DATE__") ? new Date() : buildDateIso);
         const formattedBuildDate = buildDate.toLocaleString('fr-FR', { timeZone: 'Europe/Paris' });
         gitInfo.textContent = "Locale active : " + formattedBuildDate;
@@ -43,7 +43,10 @@
           if (owner && repo) {
             fetch(`https://api.github.com/repos/${owner}/${repo}/commits?per_page=1`)
               .then(res => {
-                if (!res.ok) throw new Error("Status " + res.status);
+                if (!res.ok) {
+                  if (res.status === 403) throw new Error("Quota API atteint (403)");
+                  throw new Error("Status " + res.status);
+                }
                 return res.json();
               })
               .then(data => {
@@ -63,7 +66,13 @@
                 }
               })
               .catch(err => {
-                gitInfo.textContent = `Erreur GitHub Pages : ${err.message} (Locale : ${formattedBuildDate})`;
+                if (err.message.includes("403")) {
+                  gitInfo.innerHTML = `✅ En ligne (Version active : ${formattedBuildDate} | Diagnostic en attente - Quota API GitHub dépassé)`;
+                  gitInfo.style.color = '#34d399'; // green fallback
+                } else {
+                  gitInfo.innerHTML = `⚠️ Info diagnostic : ${err.message} (Version active : ${formattedBuildDate})`;
+                  gitInfo.style.color = '#f87171'; // soft red
+                }
               });
           }
         }
